@@ -70,20 +70,18 @@
         
         const pdfFileName = encodeURIComponent(f.name) + ".pdf";
         const pdfPath = `Orte/${pdfFileName}`;
-        
-     /*   const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.name + ' ' + f.addr)}`; */
-        const gmapsUrl = `https://maps.google.com/maps?q=${encodeURIComponent(f.name + ' ' + f.addr)}&output=html`;
+        const appleMapsUrl = `http://maps.apple.com/?q=${encodeURIComponent(f.name + ' ' + f.addr)}`;
+   
         marker.bindPopup(`
-          <div class="popup-content">
-            <b style="color: #003366;">${f.name}</b><br>
-            ${f.addr}<br>
+          <div style="min-width: 180px;">
+            <b style="color: #003366;">${f.name}</b><br>${f.addr}<br>
             <a href="tel:${f.tel}" style="text-decoration:none; color:inherit;">📞 ${f.tel}</a>
             <div class="btn-container">
-              <a href="${gmapsUrl}" target="_blank" class="btn btn-gmaps">📍Google Maps</a>
-              <a href="${pdfPath}" target="_blank" class="btn btn-pdf">📄 Info </a>
+              <a href="${appleMapsUrl}" target="_blank" class="btn btn-gmaps">In Karten öffnen</a>
+              <a href="${pdfPath}" target="_blank" class="btn btn-pdf">PDF</a>
             </div>
           </div>
-        `);
+`);
         
         marker.searchData = (f.name + " " + f.addr).toLowerCase();
         allMarkers.push(marker);
