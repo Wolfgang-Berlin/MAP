@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Fielmann-Karte – Automatisierte PDF-Links</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+  <script src="filialen.js"></script>
+
+  <style>
+    
+    html, body {
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      font-family: verdana;
+    }
+    #header {
+      background: midnightblue;
+      color: white;
+      text-align: center;
+    }
+
+    #header h1 { font-size: 0.9rem; }   
+    #map { flex-grow: 1; width: 100%; }
+
+    .popup-content { min-width: 180px; font-size: 14px; }
+    .btn-container { display: flex; gap: 8px; margin-top: 12px; }
+    .btn {
+      flex: 1; text-align: center; padding: 6px;
+      border-radius: 4px; text-decoration: none;
+      font-weight: bold; font-size: 12px; color: white;
+    }
+    .btn-gmaps { background: white; }
+    .btn-pdf { background: white; }
+  </style>
+</head>
+<body>
+
+  <div id="header">
+    <h1>Fielmann   Filialfinder</h1>
+  </div>
+  
+  <div id="map"></div>
+
+  <script>
+    const map = L.map('map').setView([52.52, 13.4], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    const markerLayer = L.layerGroup().addTo(map);
+    const allMarkers = [];
+
+
+    function createCustomIcon(char, color) {
+      return L.divIcon({
+        className: '',
+        html: `<svg width="28" height="36" 
+        viewBox="0 0 28 36"><path d="M14 0C6.27 0 0 6.27 0 14c0 9.33 14 22 14 22S28 23.33 28 14C28 6.27 21.73 0 14 0z" fill="${color || '#003366'}"/>
+        <circle cx="14" cy="14" r="8" fill="white"/><text x="14" y="19" text-anchor="middle" font-size="12" font-weight="bold" fill="black">${char}</text></svg>`,
+        iconSize: [28, 36], iconAnchor: [14, 36], popupAnchor: [0, -38]
+      });
+    }
+
+    function init() {
+      filialen.forEach(f => {
+        const marker = L.marker([f.lat, f.lng], { icon: createCustomIcon(f.char, f.color) });
+        
+        // AUTOMATISIERUNG: PDF-Name basiert auf Filialname
+        // Orte/Fielmann 0385.pdf
+        const pdfFileName = encodeURIComponent(f.name) + ".pdf";
+        const pdfPath = `Orte/${pdfFileName}`;
+        
+        const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.name + ' ' + f.addr)}`;
+
+        marker.bindPopup(`
+          <div class="popup-content">
+            <b style="color: #003366;">${f.name}</b><br>
+            ${f.addr}<br>
+            <a href="tel:${f.tel}" style="text-decoration:none; color:inherit;">📞 ${f.tel}</a>
+            <div class="btn-container">
+              <a href="${gmapsUrl}" target="_blank" class="btn btn-gmaps">📍Google Maps</a>
+              <a href="${pdfPath}" target="_blank" class="btn btn-pdf">📄 Info </a>
+            </div>
+          </div>
+        `);
+        
+        marker.searchData = (f.name + " " + f.addr).toLowerCase();
+        allMarkers.push(marker);
+        marker.addTo(markerLayer);
+      });
+      
+      const group = new L.featureGroup(allMarkers);
+      if (allMarkers.length > 0) map.fitBounds(group.getBounds(), { padding: [30, 30] });
+    }
+
+    function searchLocation() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const visible = allMarkers.filter(m => m.searchData.includes(query));
+      allMarkers.forEach(m => m.remove());
+      visible.forEach(m => m.addTo(markerLayer));
+      if (visible.length > 0) map.fitBounds(new L.featureGroup(visible).getBounds(), { padding: [50, 50], maxZoom: 15 });
+    }
+
+    init();
+    window.addEventListener('resize', () => map.invalidateSize());
+  </script>
+</body>
+</html>
