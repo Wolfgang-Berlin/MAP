@@ -68,13 +68,11 @@
       filialen.forEach(f => {
         const marker = L.marker([f.lat, f.lng], { icon: createCustomIcon(f.char, f.color) });
         
-        // AUTOMATISIERUNG: PDF-Name basiert auf Filialname
-        // Orte/Fielmann 0385.pdf
         const pdfFileName = encodeURIComponent(f.name) + ".pdf";
         const pdfPath = `Orte/${pdfFileName}`;
         
-        const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.name + ' ' + f.addr)}`;
-
+     /*   const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.name + ' ' + f.addr)}`; */
+        const gmapsUrl = `https://maps.google.com/maps?q=${encodeURIComponent(f.name + ' ' + f.addr)}&output=html`;
         marker.bindPopup(`
           <div class="popup-content">
             <b style="color: #003366;">${f.name}</b><br>
