@@ -68,8 +68,8 @@
       filialen.forEach(f => {
         const marker = L.marker([f.lat, f.lng], { icon: createCustomIcon(f.char, f.color) });
         
-        const pdfFileName = encodeURIComponent(f.name) + ".pdf";
-        const pdfPath = `Orte/${pdfFileName}`;
+        /* const pdfFileName = encodeURIComponent(f.name) + ".pdf";
+        const pdfPath = `Orte/${pdfFileName}`; */
         const appleMapsUrl = `http://maps.apple.com/?q=${encodeURIComponent(f.name + ' ' + f.addr)}`;
    
         marker.bindPopup(`
