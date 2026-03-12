@@ -71,14 +71,18 @@
         const pdfFileName = encodeURIComponent(f.name) + ".pdf";
         const pdfPath = `Orte/${pdfFileName}`; 
         const appleMapsUrl = `http://maps.apple.com/?q=${encodeURIComponent(f.name + ' ' + f.addr)}`;
-   
+        const nameEsc = f.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        const addrEsc = f.addr.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        const telEsc  = f.tel.replace(/'/g,"\\'");
+
         marker.bindPopup(`
           <div style="min-width: 180px;">
-            <b style="color: #003366;">${f.name}</b><br>${f.addr}<br>
+            <b style="color: #003366;">${f.name}</b><br>${f.addr}<br><br>
             <a href="tel:${f.tel}" style="text-decoration:none; color:inherit;">📞 ${f.tel}</a>
             <div class="btn-container">
-              <a href="${appleMapsUrl}" target="_blank" class="btn btn-gmaps">In Karten öffnen</a>
-            
+              <a href="${appleMapsUrl}" target="_blank" class="btn btn-gmaps">Karten</a>
+              <button onclick="openICS('${nameEsc}','${addrEsc}','${telEsc}')"
+                style="flex:1;padding:6px;border-radius:4px;border:none;background:white;color:black;font-weight:bold;font-size:12px;cursor:pointer;">📅 Termin</button>
             </div>
           </div>
 `);
@@ -98,6 +102,55 @@
       allMarkers.forEach(m => m.remove());
       visible.forEach(m => m.addTo(markerLayer));
       if (visible.length > 0) map.fitBounds(new L.featureGroup(visible).getBounds(), { padding: [50, 50], maxZoom: 15 });
+    }
+
+    function openICS(name, addr, tel) {
+      const overlay = document.createElement('div');
+      overlay.id = 'calOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+      const pad = n => String(n).padStart(2,'0');
+      const defaultDate = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth()+1)}-${pad(tomorrow.getDate())}`;
+      const nameE = name.replace(/'/g,"\\'");
+      const addrE = addr.replace(/'/g,"\\'");
+      const telE  = tel.replace(/'/g,"\\'");
+      overlay.innerHTML = `
+        <div style="background:white;border-radius:12px;padding:20px;width:280px;font-family:verdana;box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+          <b style="color:#003366;font-size:14px;">&#128197; Termin eintragen</b>
+          <p style="font-size:12px;color:#555;margin:6px 0 14px;">${name}<br><span style="color:#888;">${addr}</span></p>
+          <label style="font-size:12px;font-weight:bold;">Datum</label><br>
+          <input id="calDate" type="date" value="${defaultDate}" style="width:100%;margin:4px 0 12px;padding:6px;border:1px solid #ccc;border-radius:6px;font-size:14px;box-sizing:border-box;">
+          <label style="font-size:12px;font-weight:bold;">Uhrzeit</label><br>
+          <input id="calTime" type="time" value="10:00" style="width:100%;margin:4px 0 16px;padding:6px;border:1px solid #ccc;border-radius:6px;font-size:14px;box-sizing:border-box;">
+          <div style="display:flex;gap:8px;">
+            <button onclick="document.getElementById('calOverlay').remove()" style="flex:1;padding:8px;border-radius:6px;border:1px solid #ccc;background:white;font-size:13px;cursor:pointer;">Abbrechen</button>
+            <button onclick="downloadICS('${nameE}','${addrE}','${telE}')" style="flex:1;padding:8px;border-radius:6px;border:none;background:#1a73e8;color:white;font-weight:bold;font-size:13px;cursor:pointer;">Speichern</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+    }
+
+    function downloadICS(name, addr, tel) {
+      const dateVal = document.getElementById('calDate').value;
+      const timeVal = document.getElementById('calTime').value;
+      if (!dateVal || !timeVal) return;
+      const [y,m,d] = dateVal.split('-');
+      const [hh,mm] = timeVal.split(':');
+      const dtStart = `${y}${m}${d}T${hh}${mm}00`;
+      const endH = String(parseInt(hh)+1).padStart(2,'0');
+      const dtEnd = `${y}${m}${d}T${endH}${mm}00`;
+      const now = new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+      const ics = [
+        'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Fielmann Filialfinder//DE',
+        'BEGIN:VEVENT',
+        `UID:${now}@fielmann-map`,`DTSTAMP:${now}`,
+        `DTSTART:${dtStart}`,`DTEND:${dtEnd}`,
+        `SUMMARY:Termin ${name}`,`LOCATION:${addr}`,
+        'END:VEVENT','END:VCALENDAR'
+      ].join('\r\n');
+      // iOS Safari: direkt navigieren statt Download
+      window.location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+      document.getElementById('calOverlay').remove();
     }
 
     init();
